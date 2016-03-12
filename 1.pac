@@ -1,5 +1,5 @@
 // http://www.72blog.com
-var proxy = "PROXY 155.254.32.158:25;";
+var proxy = "PROXY 155.254.32.158:3128;";
 
 var domains = {
   "share.dmhy.org": 1,
