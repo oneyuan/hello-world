@@ -10,7 +10,7 @@ __author__ = 'xy'
 
 # 主类
 class FUCK():
-    def __init__(self, username, password, seatNO, mailto):
+    def __init__(self, username, password, seatNO):
     
     #    以四个参数初始化，用户名，密码，要预约的座位号，接受预约结果提醒邮件的邮箱
     
