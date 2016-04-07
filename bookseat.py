@@ -163,9 +163,9 @@ class FUCK():
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 5:
-        print 'Usage: python library.py [username] [password] [seat_NO] [email]'
-        print 'eg. python library.py S13280001 123456 003 XXXX@qq.com\n'
+    if len(sys.argv) < 4:
+        print 'Usage: python library.py [username] [password] [seat_NO] '
+        print 'eg. python library.py S13280001 123456 003 \n'
         print 'Any problems, mail to: i[at]cdxy.me'
         print '#-*- Edit by cdxy 16.03.24 -*-'
         sys.exit(0)
