@@ -115,4 +115,5 @@ class FUCK():
 
 if __name__ == '__main__':
     
-        FUCK(S12274091,S12274091,178)
+    
+        FUCK(sys.argv[1], sys.argv[2], sys.argv[3])
