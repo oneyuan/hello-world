@@ -117,50 +117,12 @@ class FUCK():
 
         self.final_content = r.content
 
-    def _is_success(self, text):
-        
-        # 接受最终的html内容，判断是否成功，并触发日志记录和邮件提醒
-        
-        if '<h5 id="MessageTip">已经存在有效的预约记录。</h5>' in text:
-            self.clear_error_once('[done!] You already ordered a seat!')
-        elif '<h5 id="MessageTip">选择的日期不允许预约。</h5>' in text:
-            self.clear_error_once('[done!] Date is wrong!')
-        elif '<h5 id="MessageTip">所选座位已经被预约。</h5>' in text:
-            self.clear_error_once('[done!] This seat is not available, maybe taken by others!')
-        elif '<h5 id="MessageTip">座位预约成功' in text:
-            self.clear_error_once('[done!] Success! An email is sending to you!')
-            
-        else:
-            self.error_log_once('Error! 302 to login page')
+  
+   
 
-    def error_log_once(self, text='default error (once)'):
-        try:
-            is_error_file = open('./isopen_xy.txt', 'r')
-        except:
-            is_error_file = open('./isopen_xy.txt', 'w')
-        if '1' not in is_error_file.read():
-            print 'writting error to log...'
-            self.error_log(text)
-        else:
-            print 'already written to log'
-        is_error_file.close()
-        
+   
 
-    def error_log(self, text='default error'):
-        is_error_file = open('./isopen_xy.txt', 'w')
-        is_error_file.write('1\n')
-        is_error_file.close()
-
-        f = open("./log_xy.txt", 'a')
-        f.write(time.strftime("%Y-%m-%d %X", time.localtime()) + text + '\n')
-        f.close()
-
-    def clear_error_once(self, text='success'):
-        print text
-        is_error_file = open('./isopen_xy.txt', 'w')
-        is_error_file.write('0\n')
-        is_error_file.close()
-
+   
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
