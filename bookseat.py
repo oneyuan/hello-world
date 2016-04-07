@@ -72,7 +72,7 @@ class FUCK():
         return date_str
 
     def _get_order_url(self):
-        return "http://202.112.150.5:82/BookSeat/BookSeatMessage.aspx?seatNo=101001" + self.seatNO + "&seatShortNo=01" + self.seatNO + "&roomNo=101001&date=" + self._get_date_str()
+        return "http://202.112.150.5:82/BookSeat/BookSeatMessage.aspx?seatNo=101002" + self.seatNO + "&seatShortNo=01" + self.seatNO + "&roomNo=101002&date=" + self._get_date_str()
 
     def _get_static_post_attr(self, page_content, data_dict):
        
@@ -129,8 +129,7 @@ class FUCK():
             self.clear_error_once('[done!] This seat is not available, maybe taken by others!')
         elif '<h5 id="MessageTip">座位预约成功' in text:
             self.clear_error_once('[done!] Success! An email is sending to you!')
-            sendmail.send_mail('BJTU Library Seat_NO:' + self.seatNO + 'ordered!',
-                               'Sending by robot. Do not reply this mail!', self.mailto)
+            
         else:
             self.error_log_once('Error! 302 to login page')
 
