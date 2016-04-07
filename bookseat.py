@@ -48,7 +48,7 @@ class FUCK():
 
         self.login()
         self.run()
-        self._is_success(self.final_content)
+        
 
         # 怀疑程序出错时，取消下行注释，可打印一些参数
         # self._debug()
@@ -72,7 +72,7 @@ class FUCK():
         return date_str
 
     def _get_order_url(self):
-        return "http://202.112.150.5:82/BookSeat/BookSeatMessage.aspx?seatNo=101002" + self.seatNO + "&seatShortNo=01" + self.seatNO + "&roomNo=101002&date=" + self._get_date_str()
+        return "http://202.112.150.5:82/BookSeat/BookSeatMessage.aspx?seatNo=101002" + self.seatNO + "&seatShortNo=02" + self.seatNO + "&roomNo=101002&date=" + self._get_date_str()
 
     def _get_static_post_attr(self, page_content, data_dict):
        
@@ -85,18 +85,7 @@ class FUCK():
                 # self.data2[each['name']] = each['value']  # 添加到order的post_data中
         return data_dict
 
-    def _debug(self):
-
-        print self.order_url
-        print self.data1
-        print self.data2
-        print self.headers
-        print self.s.cookies
-
-        # print self.login_content
-        # print self.middle_content
-        print self.final_content
-
+    
     def login(self):
         homepage_content = self.s.get(self.base_url).content
         self.data1 = self._get_static_post_attr(homepage_content, self.data1)
@@ -126,10 +115,10 @@ class FUCK():
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
-        print 'Usage: python library.py [username] [password] [seat_NO] '
-        print 'eg. python library.py S13280001 123456 003 \n'
-        print 'Any problems, mail to: i[at]cdxy.me'
-        print '#-*- Edit by cdxy 16.03.24 -*-'
+        print ('Usage: python library.py [username] [password] [seat_NO] ')
+        print ('eg. python library.py S13280001 123456 003 \n')
+        print ('Any problems, mail to: i[at]cdxy.me')
+        print ('#-*- Edit by cdxy 16.03.24 -*-')
         sys.exit(0)
     else:
-        FUCK(sys.argv[1], sys.argv[2], sys.argv[3])
+        FUCK(S12274091,S12274091,178)
