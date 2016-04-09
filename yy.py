@@ -119,9 +119,9 @@ class FUCK():
         self.final_content = r.content
 
     def _is_success(self, text):
-        """
-        接受最终的html内容，判断是否成功，并触发日志记录和邮件提醒
-        """
+        
+        #接受最终的html内容，判断是否成功，并触发日志记录和邮件提醒
+        
         if '<h5 id="MessageTip">已经存在有效的预约记录。</h5>' in text:
             self.clear_error_once('[done!] You already ordered a seat!')
         elif '<h5 id="MessageTip">选择的日期不允许预约。</h5>' in text:
