@@ -4,7 +4,6 @@ import time
 import sys
 import requests
 from bs4 import BeautifulSoup
-from mail import sendmail
 import re
 
 __author__ = 'xy'
@@ -84,7 +83,7 @@ class FUCK():
         onclick='BespeakSeatClick("2F29783C655A9563339AB02D15E6D524932B751B7D8BD46802F5BDE0A018D003503E2518F9C5AB5225C8425EFC3702B5D3068D5DFD018711A0A9E535A46B81CE27D88419D3F89E0CCDC4033307521FB0")'
         onmouseover='tipShow(this,"可预约")'
         """
-        _str = re.compile("<div id='101001" + self.seatNO + "'(.*?)</div>")
+        _str = re.compile("<div id='101002" + self.seatNO + "'(.*?)</div>")
         ans_str = re.findall(_str, page_content)
 
         _str1 = re.compile("BespeakSeatClick\(\"(.*?)\"\)")
@@ -93,7 +92,7 @@ class FUCK():
         return seat_str[0]
 
     def _error_handler(self):
-        sendmail.send_mail('Error Log', self.mail_message, self.mailto)
+        #sendmail.send_mail('Error Log', self.mail_message, self.mailto)
         sys.exit(0)
 
     def login(self):
@@ -127,7 +126,7 @@ class FUCK():
     def run(self):
 
         data_middle = {
-            'roomNum': '101001 ',
+            'roomNum': '101002 ',
             'date': self._get_date_str().replace('%2f', '/') + ' 0:00:00',
             'divTransparentTop': '0',
             'divTransparentLeft': '0'
@@ -150,7 +149,7 @@ class FUCK():
 
             print " NO:" + str(i) + " status_code:" + str(__post.status_code) + " time(ms):" + str(__post.elapsed.microseconds) + " content_len:" + str(len(self.middle_content))
             self.mail_message += " NO:" + str(i) + " status_code:" + str(__post.status_code) + " time(ms):" + str(__post.elapsed.microseconds) + " content_len:" + str(len(self.middle_content)) + "<br>"
-            if "t101001" + self.seatNO in self.middle_content:
+            if "t101002" + self.seatNO in self.middle_content:
                 print "\nGet [SeatLayoutHandle.ashx] success!\n"
                 self.mail_message += "<br>Get [SeatLayoutHandle.ashx] success!<br>"
                 break
@@ -205,7 +204,7 @@ class FUCK():
             _m = "Get Seat_NO: " + self.seatNO + " success!"
             print "\n" + _m
             self.mail_message += "<br>" + _m + "<br>"
-            sendmail.send_mail(_m, self.mail_message, self.mailto)
+            #sendmail.send_mail(_m, self.mail_message, self.mailto)
         else:
             self.mail_message += "<br>Final order POST fail!<br>maybe current time is not allowed<br>System exit!<br>"
             self._error_handler()
