@@ -4,58 +4,50 @@ import time
 import sys
 import requests
 from bs4 import BeautifulSoup
-
+import re
 
 __author__ = 'xy'
 
-# 主类
+
 class FUCK():
-    def __init__(self, username, password, seatNO):
-    
-    #    以四个参数初始化，用户名，密码，要预约的座位号，接受预约结果提醒邮件的邮箱
-    
+    def __init__(self, username, password, seatNO, mailto):
+
         self.username = username
         self.password = password
         self.seatNO = seatNO
+        self.mailto = mailto
+        self.date_str = self._get_date_str()
         self.base_url = 'http://202.112.150.5:82/'
-        self.login_url = 'http://202.112.150.5:82/'
-        self.order_url = self._get_order_url()
+        self.login_url = self.base_url + '/default.aspx'
 
         self.login_content = ''
         self.middle_content = ''
+        self.middle_content_timeout = 10
         self.final_content = ''
 
+        self.mail_message = "<br>Seat: " + seatNO + \
+                            "<br>Start at " + time.strftime("%Y-%m-%d %X", time.localtime()) + \
+                            "<br>self.date_str = " + self.date_str + "<br>"
         self.s = requests.session()  # 创建可传递cookies的会话
 
-        # post data for login
-        self.data1 = {
-            'subCmd': 'Login',
-            'txt_LoginID': self.username,  # S+学号
-            'txt_Password': self.password,  # 密码
-            'selSchool': 60,  # 60表示北京交通大学
-        }
 
-        # post data for order a seat
-        self.data2 = {
-            'subCmd': 'query',
-        }
-
-        # 自定义http头，然而我在程序里并没有使用
+        # 自定义http头，终端校检了referer
         self.headers = {
-            'Connection': 'keep-alive',
+            'Accept': 'text/html, */*',
+            'Accept-Language': 'zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3',
+            'Accept-Encoding': 'gzip, deflate',
+            'DNT': '1',
             'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Referer': 'http://202.112.150.5:82/',
+            'Connection': 'keep-alive',
         }
 
         self.login()
         self.run()
-        
-
-        # 怀疑程序出错时，取消下行注释，可打印一些参数
-        # self._debug()
 
     def _get_date_str(self):
         s = time.localtime(time.time())
-        ########333
         date_str = str(s.tm_year) + '%2f' + str(s.tm_mon) + '%2f' + str(s.tm_mday + 1)
         date_str = date_str.replace('%2f1%2f32', '%2f2%2f1') \
             .replace('%2f2%2f29', '%2f3%2f1') \
@@ -71,49 +63,156 @@ class FUCK():
             .replace('%2f12%2f32', '%2f1%2f1')
         return date_str
 
-    def _get_order_url(self):
-        return "http://202.112.150.5:82/BookSeat/BookSeatMessage.aspx?seatNo=101002" + self.seatNO + "&seatShortNo=02" + self.seatNO + "&roomNo=101002&date=" + self._get_date_str()
-
-    def _get_static_post_attr(self, page_content, data_dict):
+    def _get_static_post_attr(self, page_content):
        
-        # 拿到<input type='hidden'>的post参数，并添加到post_data中
+        #拿到<input type='hidden'>的post参数，并return
         
+        _dict = {}
         soup = BeautifulSoup(page_content, "html.parser")
         for each in soup.find_all('input'):
             if 'value' in each.attrs and 'name' in each.attrs:
-                data_dict[each['name']] = each['value']  # 添加到login的post_data中
-                # self.data2[each['name']] = each['value']  # 添加到order的post_data中
-        return data_dict
+                _dict[each['name']] = each['value']
+        return _dict
 
-    
+    def _get_static_get_attr(self, page_content):
+        """
+        <div id='101001215'
+        class='CanBespeakSeat'
+        style='left: 630px; top: 840px;width: 42px;height: 42px;'
+
+        onclick='BespeakSeatClick("2F29783C655A9563339AB02D15E6D524932B751B7D8BD46802F5BDE0A018D003503E2518F9C5AB5225C8425EFC3702B5D3068D5DFD018711A0A9E535A46B81CE27D88419D3F89E0CCDC4033307521FB0")'
+        onmouseover='tipShow(this,"可预约")'
+        """
+        _str = re.compile("<div id='101001" + self.seatNO + "'(.*?)</div>")
+        ans_str = re.findall(_str, page_content)
+
+        _str1 = re.compile("BespeakSeatClick\(\"(.*?)\"\)")
+        seat_str = re.findall(_str1, ans_str[0])
+
+        return seat_str[0]
+
+    def _error_handler(self):
+        
+        sys.exit(0)
+
     def login(self):
-        homepage_content = self.s.get(self.base_url).content
-        self.data1 = self._get_static_post_attr(homepage_content, self.data1)
-        r = self.s.post(self.login_url, self.data1)
+
+        homepage_content = self.s.get(self.base_url, timeout=120).content
+        if len(homepage_content) > 10:
+            print "\nGet homepage_content success!\n"
+            self.mail_message += "<br>Get homepage_content success!<br>"
+        else:
+            print "\nGet homepage_content failed!\nSystem exit!\n"
+            self.mail_message += "<br>Get homepage_content failed!<br>System exit"
+            self._error_handler()
+
+        data = self._get_static_post_attr(homepage_content)
+
+        data['txtUserName'] = self.username
+        data['txtPassword'] = self.password
+        data['cmdOK.x'] = 1
+        data['cmdOK.y'] = 1
+
+        r = self.s.post(self.login_url, data, timeout=120)
         self.login_content = r.content
+        if "treeMenu" in self.login_content:
+            print "\nLogin success!\n"
+            self.mail_message += "<br>Login success!<br>"
+        else:
+            print "\nLogin failed!\nplease check your ID and PASSWORD\nSystem exit!\n"
+            self.mail_message += "<br>Login failed!<br>please check your ID and PASSWORD<br>System exit"
+            self._error_handler()
 
     def run(self):
 
-        # 这个get的意思是：原先的cookie没有预约权限，
-        # 访问这个get之后，会使cookie拥有预约权限，从而执行下一个post
-        self.middle_content = self.s.get('http://202.112.150.5:82/BookSeat/BookSeatListForm.aspx').content
+        data_middle = {
+            'roomNum': '101002 ',
+            'date': self._get_date_str().replace('%2f', '/') + ' 0:00:00',
+            'divTransparentTop': '0',
+            'divTransparentLeft': '0'
+        }
 
-        # 经测试，这个post只需要一个subCmd的参数就可以正常返回，因此不必根据get内容更新post参数
-        # self.data2 = self._get_static_post_attr(middle_content, self.data2)
+        middle_url = self.base_url + "/FunctionPages/SeatBespeak/SeatLayoutHandle.ashx"
 
-        # 这个post请求完成了预约功能！
-        r = self.s.post(self.order_url, self.data2)
 
-        self.final_content = r.content
 
-  
-   
+        print "Try to get [SeatLayoutHandle.ashx]..."
+        self.mail_message += "<br>Try to get [SeatLayoutHandle.ashx]...<br>"
+        for i in range(1, 11):
+            __post = self.s.post(
+                middle_url,
+                data=data_middle,
+                headers=self.headers,
+                timeout=self.middle_content_timeout
+            )
+            self.middle_content = __post.content
 
-   
+            print " NO:" + str(i) + " status_code:" + str(__post.status_code) + " time(ms):" + str(__post.elapsed.microseconds) + " content_len:" + str(len(self.middle_content))
+            self.mail_message += " NO:" + str(i) + " status_code:" + str(__post.status_code) + " time(ms):" + str(__post.elapsed.microseconds) + " content_len:" + str(len(self.middle_content)) + "<br>"
+            if "t101002" + self.seatNO in self.middle_content:
+                print "\nGet [SeatLayoutHandle.ashx] success!\n"
+                self.mail_message += "<br>Get [SeatLayoutHandle.ashx] success!<br>"
+                break
+            self.middle_content_timeout +=10
+            print " -failed-"
+        else:
+            print "\nGet [SeatLayoutHandle.ashx] failed!\n\nSystem exit!\n"
+            # print "\nself.middle_content =>\n" + self.middle_content
+            self.mail_message += "<br>Get [SeatLayoutHandle.ashx] failed!<br>System exit"
+            self.mail_message += "<br>self.middle_content = <br><p><pre>" + self.middle_content + "</pre></p>"
+            self._error_handler()
 
-   
+        get_para = self._get_static_get_attr(self.middle_content)
+        print "get_para = " + get_para
+
+        if len(get_para) < 10:
+            print "\nThis seat is taken by others!\nSystem exit!"
+            self.mail_message += "<br>This seat is taken by others!<br>System exit!<br>"
+            self._error_handler()
+        else:
+            pass
+
+        self.final_url = self.base_url + "/FunctionPages/SeatBespeak/BespeakSubmitWindow.aspx?parameters=" + get_para
+
+        _headers = {
+            'Referer': self.base_url + 'FunctionPages/SeatBespeak/BespeakSeatLayout.aspx'
+        }
+
+        final_dict = self._get_static_post_attr(self.s.get(self.final_url, headers=_headers, timeout=120).content)
+        # print final_dict
+
+        final_dict["__EVENTTARGET"] = "ContentPanel1$btnBespeak"
+        final_dict["__EVENTARGUMENT"] = ""
+        final_dict["X_CHANGED"] = "false"
+        final_dict["X_TARGET"] = "ContentPanel1_btnBespeak"
+        final_dict["Form2_Collapsed"] = "false"
+        final_dict["ContentPanel1_Collapsed"] = "false"
+        final_dict["X_STATE"] = ""
+        final_dict["X_AJAX"] = "true"
+
+        self.final_content = self.s.post(
+            self.final_url, data=final_dict, headers=self.headers, timeout=120
+        ).content
+
+        if len(self.final_content) < 10:
+            print "no response from the last post\nsystem exit!\n"
+            self._error_handler()
+
+        if "X.wnd.getActiveWindow()" in self.final_content:
+            _m = "Get Seat_NO: " + self.seatNO + " success!"
+            print "\n" + _m
+            
+        else:
+            print "error"
+            self._error_handler()
+
 
 if __name__ == '__main__':
-    
-    
-        FUCK(sys.argv[1], sys.argv[2], sys.argv[3])
+    if len(sys.argv) < 5:
+        print 'Usage: python library.py [username] [password] [seat_NO] [email]'
+        print 'eg. python library.py S13280001 123456 003 XXXX@qq.com\n'
+        print 'Any problems, mail to: i[at]cdxy.me'
+        print '#-*- Edit by cdxy 16.03.24 -*-'
+        sys.exit(0)
+    else:
+        FUCK(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
