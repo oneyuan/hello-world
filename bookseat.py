@@ -4,6 +4,7 @@ import time
 import sys
 import requests
 from bs4 import BeautifulSoup
+from mail import sendmail
 import re
 
 __author__ = 'xy'
@@ -64,9 +65,9 @@ class FUCK():
         return date_str
 
     def _get_static_post_attr(self, page_content):
-       
-        #拿到<input type='hidden'>的post参数，并return
-        
+        """
+        拿到<input type='hidden'>的post参数，并return
+        """
         _dict = {}
         soup = BeautifulSoup(page_content, "html.parser")
         for each in soup.find_all('input'):
@@ -92,7 +93,7 @@ class FUCK():
         return seat_str[0]
 
     def _error_handler(self):
-        
+        sendmail.send_mail('Error Log', self.mail_message, self.mailto)
         sys.exit(0)
 
     def login(self):
@@ -126,7 +127,7 @@ class FUCK():
     def run(self):
 
         data_middle = {
-            'roomNum': '101002 ',
+            'roomNum': '101001 ',
             'date': self._get_date_str().replace('%2f', '/') + ' 0:00:00',
             'divTransparentTop': '0',
             'divTransparentLeft': '0'
@@ -149,7 +150,7 @@ class FUCK():
 
             print " NO:" + str(i) + " status_code:" + str(__post.status_code) + " time(ms):" + str(__post.elapsed.microseconds) + " content_len:" + str(len(self.middle_content))
             self.mail_message += " NO:" + str(i) + " status_code:" + str(__post.status_code) + " time(ms):" + str(__post.elapsed.microseconds) + " content_len:" + str(len(self.middle_content)) + "<br>"
-            if "t101002" + self.seatNO in self.middle_content:
+            if "t101001" + self.seatNO in self.middle_content:
                 print "\nGet [SeatLayoutHandle.ashx] success!\n"
                 self.mail_message += "<br>Get [SeatLayoutHandle.ashx] success!<br>"
                 break
@@ -164,6 +165,7 @@ class FUCK():
 
         get_para = self._get_static_get_attr(self.middle_content)
         print "get_para = " + get_para
+        self.mail_message += "<br>Get_para => " + get_para + "<br>"
 
         if len(get_para) < 10:
             print "\nThis seat is taken by others!\nSystem exit!"
@@ -196,14 +198,16 @@ class FUCK():
 
         if len(self.final_content) < 10:
             print "no response from the last post\nsystem exit!\n"
+            self.mail_message += "<br>no response from the last post<br>system exit!<br>"
             self._error_handler()
 
         if "X.wnd.getActiveWindow()" in self.final_content:
             _m = "Get Seat_NO: " + self.seatNO + " success!"
             print "\n" + _m
-            
+            self.mail_message += "<br>" + _m + "<br>"
+            sendmail.send_mail(_m, self.mail_message, self.mailto)
         else:
-            print "error"
+            self.mail_message += "<br>Final order POST fail!<br>maybe current time is not allowed<br>System exit!<br>"
             self._error_handler()
 
 
