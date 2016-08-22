@@ -17,7 +17,7 @@ class FUCK():
         self.seatNO = seatNO
         self.mailto = mailto
         self.date_str = self._get_date_str()
-        self.base_url = 'http://202.112.150.5:82/'
+        self.base_url = 'http://202.112.150.5:80/'
         self.login_url = self.base_url + '/default.aspx'
 
         self.login_content = ''
@@ -212,10 +212,9 @@ class FUCK():
 
 if __name__ == '__main__':
     if len(sys.argv) < 5:
-        print 'Usage: python library.py [username] [password] [seat_NO] [email]'
-        print 'eg. python library.py S13280001 123456 003 XXXX@qq.com\n'
-        print 'Any problems, mail to: i[at]cdxy.me'
-        print '#-*- Edit by cdxy 16.03.24 -*-'
+        print 'Usage: python bookseat.py [username] [password] [seat_NO] @'
+        print 'eg. python library.py S13290001 123456 003 XXXX@qq.com\n'
+        print '#-*- Edit by oneyuan 16.08.22 -*-'
         sys.exit(0)
     else:
         FUCK(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
