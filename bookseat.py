@@ -39,7 +39,7 @@ class FUCK():
             'DNT': '1',
             'Content-Type': 'application/x-www-form-urlencoded',
             'X-Requested-With': 'XMLHttpRequest',
-            'Referer': 'http://202.112.150.5:82/',
+            'Referer': 'http://202.112.150.5:80/',
             'Connection': 'keep-alive',
         }
 
