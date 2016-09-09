@@ -1,0 +1,446 @@
+【在搬瓦工等OPENVZ架构的CENTOS上安装Shadowsocks和建立IPV6隧道完全教程】
+
+由于GFW越来越强大，原有的VPN、GAE等翻墙方法越来越难，Shadowsocks应运而生。如何搭建Shadowsocks服务器端就成了渴望稳定翻墙的用户所思考的问题。
+
+我作为一名大学生，由于学习需要，又苦于校园网IPV4网络的高昂费用，萌生了利用Shadowsocks服务器端转化IPV4流量到IPV6通道的想法，经试验成功。
+
+综合以上两点，我写了这个完全教程。所谓完全，不仅是有详解，还有网络各种教程的校正和综合。因此，这既是适合我这样需要IPV6和SS翻墙的用户的教程，也是适合想要利用搬瓦工等CENTOS VPS建立Shadowsocks的用户的教程。本文写作过程中，广泛搜集了网上各类教程，详细解释了各个步骤的目的，大量更正了网络现存教程的错误。
+
+如果觉得本文帮助到了您，不妨给予我一些捐助：支付宝oyrx@vip.qq.com。谢谢。
+
+在此提醒，本教程分为两个部分：
+
+1、搭建服务器端；
+
+2、实现IPV6双向访问。
+
+教程正式开始。
+
+【VPS选择】
+
+鉴于我们的目的——建立便宜好用的Shadowsocks服务器端，实现翻墙和校园网免费上网，因此我们选择的服务器既需要价钱便宜，又需要有较大的流量和带宽。经综合比较，搬瓦工VPS是最佳选择。
+
+Bandwagon的中文俗称为搬瓦工，最低只需要选$3.99 dollars/annually(刀/每年)即可实现。链接：主页.所有规格
+
+购买需要Paypal和注册账户，点击导航栏Services(服务) > Order New Services（订购）即可查看所有规格的VPS，拖到中下部就是我们需要的便宜货。
+
+【一键搭建教程】
+
+如果你仅需要建立一个翻墙服务器，可以使用搬瓦工提供的一键安装Shadowsocks服务。如果你需要自定义密码、多用户登录、IPV6等高级操作，需要按照下边的正常方式安装。
+
+步骤一 安装
+
+登陆搬瓦工，点击“Services”里的“My Services”，点击“KiwiVM Control Panel”，这时会跳转到一个新页面。将新页面左侧的滚动条拉到底，找到“Shadowsocks Server”字样并点击进入，然后点击“Install Shadowsocks Server”，几秒钟之后显示Completed的字样就代表完成了。
+
+步骤二 配置
+
+这时候点击“Go back”或者直接点击左侧的“Shadowsocks Server”，你会看到出现了一个叫做“Shadowsocks server controls”的东西，上面有默认的加密方式(encryption)、服务器端口(port)以及密码(password)，你可以直接使用默认的，也可以点击旁边的“Change xx”按钮进行修改，最后检查一下Status是不是Running，不是的话就点一下旁边的“Start”。至此，你的Shadowsocks服务端就搭建完成了，你可以直接跳转到本教程后面的客户端配置部分。
+
+需要注意的是，一键搭建不支持通过修改配置文件更改连接密码。
+
+【正常搭建教程】
+
+步骤一 下载SSH工具
+
+为了方便搭建（某些操作需要确定，无法在网页版命令行进行操作），请下载Putty客户端，用于在你的Windows系统上远程登陆你的VPS。
+
+注意：用Putty登录VPS时输入的密码是不可见的，正常输入或粘贴完毕后回车即可：
+
+步骤二 获取SSH密码
+
+搬瓦工需要在“My Services”里进入“KiwiVM Control Panel”点击“Root password modification”来获得root密码，SSH端口在控制面板可看到，用户名是root。
+
+如果在以下的远程操作中文件编辑阶段遇到了问题，请查阅 VI编辑器基本用法扫盲：
+http://linux.chinaunix.net/doc/office/2005-01-24/898.shtml（基本用法）
+http://linux.vbird.org/linux_basic/0310vi.php（图文详解）
+
+步骤三 搭建Shadowsocks服务端
+
+下面的命令，需要一行一行的执行，每输入一行命令，回车执行，如果没有报错，即为执行成功，出现确认提示的时候，输入 y 后，回车即可。每行命令可以复制后在putty里右键粘贴，回车执行。
+
+yum install epel-release
+yum update
+yum install python-setuptools m2crypto supervisor
+easy_install pip
+pip install shadowsocks
+继续执行命令
+
+vi /etc/shadowsocks.json
+此时按 i 键进入编辑模式，putty黑框的左下角会出现 — INSERT — 字样，然后一次性复制下面的内容（复制之前记得修改8388和yourpassword为你自己的端口号和密码，此端口号不是你的SSH端口号，而是你在手机或电脑上的shadowsocks客户端连接VPS上搭建的服务端的端口号，范围 1 – 65535 ，只要不和现有的端口号如SSH端口冲突都可以，记下你修改的端口号和密码，待会儿在配置手机和电脑的客户端时还要用到），在putty里右键，此时复制的内容应该已经粘贴到了putty里
+
+{
+“server”:”::”,
+“server_port”:5566,
+“local_port”:1080,
+“password”:”你的密码”,
+“timeout”:600,
+“method”:”rc4-md5″
+}
+解释：
+
+1、server字段使用”::”是为了同时监听IPV4/IPV6所有端口，无论是IPV4还是IPV6都适用。
+
+2、服务器端口serverport和加密方法method为个人习惯
+
+复制完成后，按 Esc 键退出编辑模式，此时putty黑框左下角的 — INSERT — 字样消失，按下 : 键，输入 wq 后回车，此时文件保存完毕并退出了vi编辑器。（“ : ”的输入方法为“Shift+字母L右侧的分号键”）
+
+继续执行命令
+
+vi /etc/supervisord.conf
+此时你应该能看到很多英文内容，按 i 键再次进入编辑模式，putty黑框的左下角会出现 — INSERT — 字样，用方向键将光标调整至文件尾部的空行处，然后一次性复制下面的内容，在putty里右键，此时复制的内容应该已经粘贴到了putty里
+
+[program:shadowsocks]
+command=ssserver -c /etc/shadowsocks.json
+autostart=true
+autorestart=true
+user=root
+log_stderr=true
+logfile=/var/log/shadowsocks.log
+复制完成后，按下回车键给文件尾部留出空行，然后按 Esc 键退出编辑模式，此时putty黑框左下角的 — INSERT — 字样消失，按下 : 键，输入 wq 后回车，此时文件保存完毕并退出了vi编辑器。
+
+继续执行命令
+
+vi /etc/rc.local
+此时你应该能看到几行英文内容，按 i 键再次进入编辑模式，putty黑框的左下角会出现 — INSERT — 字样，用方向键将光标调整至文件中部的空行处，然后一次性复制下面的内容，在putty里右键，此时复制的内容应该已经粘贴到了putty里
+
+service supervisord start
+复制完成后，按 Esc 键退出编辑模式，此时putty黑框左下角的 — INSERT — 字样消失，按下 : 键，输入 wq 后回车，此时文件保存完毕并退出了vi编辑器。
+
+最后执行命令
+
+reboot
+此时，你的VPS重新启动，服务端已经完全配置完毕，putty会弹出一个连接已断开的提示框，关闭即可(不是报错)。
+
+提示：
+
+搬瓦工的VPS在执行完reboot命令后有时会遇到重启失败的情况，这时候进入控制面板，看一下“Status”是不是“Running”，如果不是的话，点一下“Actions”里的“start”按钮即可。
+
+如果你只需要使用IPV4的代理，服务器端的教程已经结束了，可以直接跳过下一阶段到客户端设置。如果需要IPV6请接着看。
+
+ 【建立IPV6 TUNNEL】
+
+因为这种基于OPENVZ的廉价VPS是不完全虚拟化的，不能独立修改系统内核，所以需要安装TB-TUN实现IPV4网络下的IPV6访问。
+
+步骤一 安装GCC工具
+
+首先，在Putty中登陆VPS,执行命令
+
+yum install gcc gcc-c++ kernel-devel
+这是为了安装GCC编译器，为接下来安装TB-TUN用户态隧道作准备。
+
+步骤二 申请虚拟IPV6隧道
+
+到TunnelBroker注册用户，登陆，点击Create Regular Tunnel，在IPv4 Endpoint中填入VPS的IPv4地址，然后在下面的Available Tunnel Servers选择服务器，可以根据自己VPS的地理位置，选择速度相对较快的服务器。
+
+ 
+
+步骤三 设置TAB-TUN工具
+
+先检查tun/tap设备是否已经打开，可以通过命令cat /dev/net/tun检测，如果返回File descriptor in bad state，则说明tun/tap设备已经打开，否则需要给客服发ticket开启。根据我的观察，搬瓦工的VPS再便宜都是打开的。
+
+下载tb-tun，运行命令
+
+wget http://tb-tun.googlecode.com/files/tb-tun_r18.tar.gz
+解压
+
+tar xvf tb-tun_r18.tar.gz
+编译tb-tun，这就是使用刚才安装的GCC编译工具的时候了
+
+gcc tb_userspace.c -l pthread -o tb_userspace
+设置TB-TUN，下面这一小段命令需要一行一行分别运行
+
+setsid ./tb_userspace tb 隧道服务器IPV4地址(Server IPv4 Address) 搬瓦工VPSIPV4地址(Client IPv4 Address) sit
+ifconfig tb up
+ifconfig tb inet6 add 隧道分配的客户端IPV6地址(Client IPv6 Address，需要加上/64)
+ifconfig tb mtu 1480
+route -A inet6 add ::/0 dev tb
+route -A inet6 del ::/0 dev venet0
+如，我的配置命令是：
+
+setsid ./tb_userspace tb 66.*.**.42 45.**.*.56 sit
+ifconfig tb up
+ifconfig tb inet6 add 2001:***:c:***::2/64
+ifconfig tb mtu 1480
+route -A inet6 add ::/0 dev tb
+route -A inet6 del ::/0 dev venet0
+
+提示： 在运行 setsid ./tb_userspace tb 隧道服务器IPV4地址(Server IPv4 Address) 搬瓦工VPSIPV4地址(Client IPv4 Address) sit 时，可能需要较长时间。
+
+步骤四 设置INIT.D自启动脚本
+
+创建新的init.d脚本，输入命令：
+
+vi /etc/init.d/ipv6tb
+按照刚才在Putty中使用VI文件编辑器的步骤，修改为以下文件内容
+
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides: ipv6
+# Required-Start: $local_fs $all
+# Required-Stop: $local_fs $network
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: starts the ipv6 tunnel
+# Description: ipv6 tunnel start-stop-daemon
+### END INIT INFO
+
+# /etc/init.d/ipv6tb
+
+touch /var/lock/ipv6tb
+
+case “$1″ in
+start)
+echo “Starting ipv6tb ”
+setsid ./tb_userspace tb 隧道服务器IPV4地址(Server IPv4 Address) 搬瓦工VPSIPV4地址(Client IPv4 Address) sit
+sleep 3s
+ifconfig tb up
+ifconfig tb inet6 add 隧道分配的客户端IPV6地址(Client IPv6 Address，需要加上/64)
+ifconfig tb inet6 add 隧道分配的客户端IPV6路由地址(Routed IPv6 Address，需要在::和/64之间加上数字1)
+ifconfig tb mtu 1480
+route -A inet6 add ::/0 dev tb
+route -A inet6 del ::/0 dev venet0
+;;
+stop)
+echo “Stopping ipv6tb”
+ifconfig tb down
+route -A inet6 del ::/0 dev tb
+killall tb_userspace
+;;
+*)
+echo “Usage: /etc/init.d/ipv6tb {start|stop}”
+exit 1
+;;
+esac
+
+exit 0
+如我的文件内容是
+
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides: ipv6
+# Required-Start: $local_fs $all
+# Required-Stop: $local_fs $network
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: starts the ipv6 tunnel 
+# Description: ipv6 tunnel start-stop-daemon
+### END INIT INFO
+
+# /etc/init.d/ipv6tb
+
+touch /var/lock/ipv6tb
+
+case “$1″ in
+start)
+echo “Starting ipv6tb “
+setsid ./tb_userspace tb 66.*.**.42 45.**.*.56 sit
+sleep 3s 
+ifconfig tb up
+ifconfig tb inet6 add 2001:***:c:***::2/64
+ifconfig tb inet6 add 2001:***:d:***::1/64 
+ifconfig tb mtu 1480
+route -A inet6 add ::/0 dev tb
+route -A inet6 del ::/0 dev venet0
+;;
+stop)
+echo “Stopping ipv6tb”
+ifconfig tb down
+route -A inet6 del ::/0 dev tb
+killall tb_userspace
+;;
+*)
+echo “Usage: /etc/init.d/ipv6tb {start|stop}”
+exit 1
+;;
+esac
+
+exit 0
+
+加入到自启动列表，运行命令
+
+chmod 0755 /etc/init.d/ipv6tb
+
+chkconfig --add ipv6tb
+
+解释：
+
+网上现存教程针对的是debian系统，不适用centos，所以有所更正。
+
+立即执行IPV6-TB脚本，运行命令
+
+/etc/init.d/ipv6tb start
+最后，试试能不能成功使用IPV6隧道，不成功可重启再试，运行命令
+
+ping6 ipv6.google.com
+如果成功获得数据包，此时，您的服务器上的Shadowsocks应该能够运行在IPV4/IPV6双网络上啦！
+
+【客户端配置】
+
+至此，shadowsocks的服务端已经部署完成。剩下的就是下载客户端安装到你的手机和电脑上，记得修改客户端的相关设置保持和你的服务端参数一致哦。
+
+Android客户端下载链接
+
+https://play.google.com/store/apps/details?id=com.github.shadowsocks
+
+推荐在Google Play下载，自动适配你的系统版本，以免出现问题。
+
+https://github.com/shadowsocks/shadowsocks-android/releases
+
+电脑客户端端下载链接（Windows、Mac OS X）
+
+http://sourceforge.net/projects/shadowsocksgui/files/dist/
+
+小提醒：Windows 7用户下载Shadowsocks-win-x.x.x.zip，Windows 8用户下载Shadowsocks-win-dotnet4.0-x.x.x.zip。
+
+iOS客户端端下载链接
+
+https://itunes.apple.com/cn/app/shadowsocks/id665729974?mt=8
+
+Android手机客户端配置示例（以上述服务端配置为例）：
+注意：已经root手机的小伙伴请勿授予root权限，以免发生未知问题。
+
+服务器：你的VPS IP地址（非0.0.0.0）
+远程端口：5566
+本地端口：1080
+密码：你安装时输入的密码
+加密方法：rc4-md5
+路由：绕过局域网及中国大陆地址
+全局代理：勾选
+UDP转发：建议勾选，如有问题则取消勾选
+自动连接：勾选
+
+电脑客户端配置示例（以上述服务端配置为例）：
+（示例客户端版本：Shadowsocks-win-2.1.6.zip (144.9 kB)，系统Windows 7，如遇无法启动的情况，请右键以管理员身份运行）
+
+服务器 IP：你的VPS IP地址（非0.0.0.0）
+服务器端口：5566
+密码：你安装时输入的密码
+加密：rc4-md5
+代理端口：1080
+备注：随便写
+
+右键任务栏飞机小图标，勾选“启用代理”、“开机启动”。
+
+注：新版的shadowsocks电脑客户端已经支持一键切换系统代理，无需浏览器插件，内置可编辑的PAC服务，并提供HTTP代理，兼容IE。当然，你也可以继续使用Chrome浏览器配合SwitchySharp代理插件使用这里不再赘述。
+
+【进阶答疑】
+
+本答疑会根据大家的反馈以及shadowsocks的不断更新而不定期更新，进阶部分针对已经具备一定基础的非新手，这部分内容遇到任何问题请自行Google。
+
+1.Android 5.0的Shadowsocks为什么耗电量非常高？
+
+Android 5.0的电量统计模块把所有经过shadowsocks代理的流量所产生的耗电量都算在了shadowsocks上，因此看起来会很耗电，比如你Chrome浏览器的电量都被算到了shadowsocks头上，实际上还是很省电的。
+
+2.如何查看当前VPS上的Shadowsocks服务端版本号？
+
+pip show shadowsocks
+
+3.以后如何升级VPS上的Shadowsocks服务端？
+
+pip install –upgrade shadowsocks
+reboot
+
+4.我搭建过程中不小心出错，想重新来过，如何重装VPS的系统？
+
+搬瓦工：VPS控制面板里，Install new OS
+DigitalOcean：VPS控制面板里，Destroy，Rebuild
+Linode：VPS控制面板里，Rebuild
+
+5.我开始选择的节点线路不理想，如何切换机房？
+
+搬瓦工：VPS控制面板里，Migrate to another DC，无需重新搭建Shadowsocks服务端。
+DigitalOcean：新建一台你想要机房的VPS，删除原来的，需要重新搭建Shadowsocks服务端。
+Linode：新建一台你想要机房的VPS，删除原来的，需要重新搭建Shadowsocks服务端。
+
+6.如何配置多账户？
+
+小提示：Shadowsocks支持一个账户在多个终端同时使用，一般人没有配置多账户的必要。所以如果你看不懂，那你还是别折腾了。
+
+{
+“server”:”0.0.0.0″,
+“port_password”:{
+“8388”:”password1″,
+“8389”:”password2″,
+“8390”:”password3″,
+“8391”:”password4″
+},
+“timeout”:300,
+“method”:”aes-256-cfb”
+}
+
+友情提醒：GFW目前是根据流量检测分析匹配统计学模型的方式来判断你是否在翻墙，换言之，你用什么方式翻墙并不重要，重要的是你和服务器之间的流量特征是否像是在翻墙。一旦匹配，既对你进行有罪推论，轻则限速，重则彻底封锁IP。在IPv4地址已经枯竭的今天，可用的美国IP地址会越来越少，所以不建议将自己的账号分享多人使用，以防被封。
+
+7.为什么我的shadowsocks在刚搭建好的时候速度很快用了几天后速度就变慢了甚至网页都很难刷出来？
+
+出现这种情况有多种可能性：
+
+①shadowsocks长时间保持不间断连接会被GFW根据流量模型分析判断出你可能在翻墙(原理见上面的友情提醒)，于是进行主动干扰，轻则限速，重则切断你和服务端的连接。解决方法：切换一下你的网络，比如从Wi-Fi切换到3G或者从3G切换到Wi-Fi或者直接断开网络连接，等待10分钟以后，一般即可恢复正常。PS：每天晚上睡觉前关闭手机的网络连接会大大减小此种情况发生的概率；而将自己的VPS分享给多人使用则可能大大增加此种情况发生的概率，请自行斟酌。值得说明的是，VPN最容易受到此类干扰，而shadowsocks作为可自定义端口的私有协议代理已经是最不容易被干扰的翻墙方式之一了。
+
+②机房的QoS策略。解决方法：将shadowsocks服务端的server_port改为常见端口。
+
+③本地线路抽风，你所使用宽带运营商的国际出口出现问题。比如最近南方电信部分地区国际出口严重不稳定(电信人为限制)。解决方法：<1>先尝试一下DigitalOcean的新加坡节点或者Linode的日本节点；<2>如果当地有“国际精品网”业务，开通后可立即完美解决这个问题；<3>如果不愿意给电信交保护费，那么就换家运营商吧，移动和联通都没问题。
+
+④VPS间歇性抽风。无论你选择哪家供应商的VPS，都可能遇到有时候线路抽风、VPS速度慢或者不正常。不同的是，越是价位高的VPS出现抽风情况的可能性越低，越是价位高的VPS出现抽风情况时能保证的最低连接速度越高。出现这种情况的可能性比较低，我手头的无论是搬瓦工还是DigitalOcean以及Linode暂时未遇到线路抽风情况。
+
+⑤搬瓦工的年付VPS为OpenVZ架构，同一母机下的VPS越多，同一时间段使用的人越多，速度就越慢。解决方法：一分价钱一分货，将VPS更换为DigitalOcean或者Linode。
+
+⑥中国的国际出口带宽有限，晚高峰时段可能出现网络拥堵，速度多少会受影响，但这种情况起码白天的速度应该是没问题的。
+
+⑦如果你在VPS上搭建了VPN并且经常使用，尤其是OpenVPN，请立即停止使用。VPN协议特征明显，GFW可以非常容易的检测到，从而盯上你的IP，轻则限速，重则彻底屏蔽。常见VPN协议根据易受干扰的程度从大到小依次为：OpenVPN > PPTP > L2TP > IPSec，尤其是OpenVPN，GFW已经可以实现对其定点清除(同样遭此待遇的还有SSH翻墙)。如果你想让自己VPS的IP快速报废，那么就请尽情的使用搬瓦工的控制面板搭建OpenVPN吧。重要提醒：在不明所以的情况下尽量不要在自己的VPS上搭建其他杂七乱八的翻墙服务尤其是一些早已过时和落后的翻墙方式，翻墙手段宜新不宜旧，只搭一个Shadowsocks是最能保证你翻墙效果和服务器稳定的好策略。
+
+⑧其他：偶尔的速度慢或者连不上都是正常的，但如果经常性的速度奇慢或者连不上那就不正常了。
+
+8.为什么是CentOS？
+
+作为服务器而言，永远都是稳定性压倒一切。而CentOS简单易用，上手快速，业界公认的稳定，且易于维护，是服务器操作系统首选。
+
+9.为什么是Python版？
+
+Python版的Shadowsocks易部署，后期升级维护都非常方便，相当适合新手，支持的特性也最多，稳定性好，运行效率高。
+
+10.为什么使用supervisord？
+
+与繁琐的带参执行方式相比，service命令在CentOS系统里使用起来更加灵活方便，比如：
+
+①启动Shadowsocks服务端：service supervisord start
+②关闭Shadowsocks服务端：service supervisord stop
+③重启shadowsocks服务端：service supervisord restart
+
+【错误排查】
+
+已经成功的小伙伴可以直接略过这部分了。
+
+温馨提醒：在怀疑教程的任何一个地方之前，请先怀疑你自己。
+
+服务端搭建成功的唯一衡量标准是在手机或者电脑客户端正确配置后能否顺利的访问被屏蔽的网站，无论是电脑还是手机，只要有一个终端能够成功翻墙即视为服务端搭建成功，出现所谓的可以连接但无法上网其实还是服务端或者客户端的配置有问题，认真按照下面的步骤一步步排错吧。
+
+遇到问题的小伙伴请先认真仔细阅读这两篇文章
+http://linux.chinaunix.net/doc/office/2005-01-24/898.shtml
+http://linux.vbird.org/linux_basic/0310vi.php
+上面的链接为vi编辑器基本用法扫盲（新手必读）
+
+最容易出现问题的地方，就是vi编辑器的使用，如果你在执行vi命令后没有按 i 键进入编辑模式就直接复制粘贴，会造成粘贴内容的首行被覆盖，从而导致错误；或者你在粘贴内容后，没有以正确的方式保存退出，同样会出现问题。
+
+如果你在执行完reboot命令后，手机端无法连接，请先确保你的手机端配置正确，并且网络环境良好(参照上面的Android手机客户端配置示例)。然后用putty登入你的VPS后通过以下方式逐步排查：
+
+1.执行命令service supervisord start，执行完毕后如果没有报错，手机端也可以正常连接，那么问题出在vi /etc/rc.local这个环节，请重新检查该文件配置；如果手机端依然无法连接，请继续往下看。
+
+2.执行命令ssserver -c /etc/shadowsocks.json，执行完毕后如果没有报错，手机端也可以正常连接，那么问题出在vi /etc/supervisord.conf这个环节，请重新检查该文件配置；如果手机端依然无法连接，请继续往下看。
+
+3.如果依次进行完以上两步后，手机端依然无法连接，那么问题出在vi /etc/shadowsocks.json环节，请重新检查该文件配置。
+
+4.如果以上三个文件的配置问题都解决后，执行reboot命令后，手机端依然无法连接，那么说明你在教程最开始的5行命令没有正确执行，在搬瓦工和DigitalOcean以及Linode官网的控制面板里重装VPS系统后，按照教程认认真真仔仔细细的重新来过吧。
+
+【鸣谢】
+
+本文参考了多篇教程和相关资料，如下：
+
+【倾力原创】史上最详尽Shadowsocks从零开始一站式翻墙教程
+
+Shadowsocks，ipv6和便宜的VPS，还有OpenVPN
+
+为OpenVZ VPS添加HE IPv6 tunnel
+
+IPv6 tunnel on OpenVZ﻿
