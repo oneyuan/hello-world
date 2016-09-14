@@ -213,8 +213,8 @@ class FUCK():
 if __name__ == '__main__':
     if len(sys.argv) < 5:
         print 'Usage: python bookseat.py [username] [password] [seat_NO] @'
-        print 'eg. python library.py S13290001 123456 003 XXXX@qq.com\n'
-        print '#-*- Edit by oneyuan 16.08.22 -*-'
+        print 'eg. python library.py S13290001 123456 003 @\n'
+        print '#-*- Author: cdxy Edit by oneyuan 16.08.22 -*-'
         sys.exit(0)
     else:
         FUCK(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
